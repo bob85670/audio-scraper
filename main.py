@@ -4,7 +4,8 @@ import argparse
 import logging
 import sys
 
-from . import soundcloud, youtube
+import soundcloud
+import youtube
 
 logger = logging.getLogger(__name__)
 
