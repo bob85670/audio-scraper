@@ -26,7 +26,7 @@ def cli(args=None):
     parser.add_argument("-q", "--quiet", default=False, action="store_true", help="hide progress reporting")
     parser.add_argument("-v", "--verbose", default=False, action="store_true", help="display debug information")
     parser.add_argument("-o", "--overwrite", default=False, action="store_true", help="overwrite existing files")
-    parser.add_argument("-l", "--limit", default=10, type=int, help="limit number of downloads")
+    parser.add_argument("-l", "--limit", default=1, type=int, help="limit number of downloads (modified to 1)")
     args = parser.parse_args()
 
     logging.basicConfig(format="[%(name)s] %(message)s")
@@ -37,9 +37,10 @@ def cli(args=None):
     else:
         logger.setLevel(logging.INFO)
 
-    logger.info(f'Downloading audio from "{args.query}" videos tagged {args.include} and not {args.exclude}.')
-    download(args.query, args.include, args.exclude, args.quiet, args.verbose, args.overwrite, args.limit)
-    logger.info("Finished downloading audio.")
+    logger.info(f'Downloading 1 audio track from "{args.query}" videos tagged {args.include} and not {args.exclude}.')
+    # Always limit to 1 for this specific requirement
+    download(args.query, args.include, args.exclude, args.quiet, args.verbose, args.overwrite, 1)
+    logger.info("Finished downloading 1 audio track.")
 
 
 if __name__ == "__main__":

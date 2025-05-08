@@ -25,60 +25,73 @@ else:
 
 
 def scrape(query, include, exclude, quiet, verbose, overwrite, limit):
-    """Search SoundCloud and download audio from discovered playlists."""
-    # Launch SoundCloud client
+    """
+    Search SoundCloud and download audio from discovered playlists using web scraping.
+    Only scrapes the first song from the first (most related) playlist.
+    """
     client = SoundcloudAPI()
-    
-    # Generator for yielding all results pages
-    def pagination(x):
-        yield x
-        while x.next_href:
-            x = client.get(x.next_href)
-            yield x
 
-    # Search SoundCloud for playlists
-    for playlists in pagination(
-        client.get(
-            "/playlists",
-            q=query,
-            tags=",".join(include) if include else "",
-            linked_partitioning=1,
-            representation="compact",
-        )
-    ):
-        # Download playlists
-        for playlist in playlists.collection:
-            # Skip playlists containing filter terms
-            metadata = [playlist.title]
-            if playlist.description:
-                metadata.append(playlist.description)
-            haystack = " ".join(metadata).lower()
-            if any(needle in haystack for needle in exclude):
+    # Step 1: Search for playlists using SoundCloud search page
+    search_url = f"https://soundcloud.com/search/sets?q={requests.utils.quote(query)}"
+    resp = requests.get(search_url)
+    if not resp.ok:
+        logger.error(f"Failed to fetch search results for query: {query}")
+        return
+
+    # Step 2: Find playlist URLs in search results (look for '/{user}/sets/{playlist-name}')
+    from bs4 import BeautifulSoup
+    soup = BeautifulSoup(resp.text, "html.parser")
+    playlist_urls = set()
+    for link in soup.find_all("a", href=True):
+        href = link["href"]
+        # Playlist URLs follow /user/sets/playlist-title
+        if href.startswith("/") and "/sets/" in href:
+            playlist_urls.add("https://soundcloud.com" + href)
+        if len(playlist_urls) >= limit:
+            break
+
+    # Step 3: Process only the first playlist that passes filters
+    for playlist_url in playlist_urls:
+        try:
+            playlist = client.resolve(playlist_url)
+        except Exception as e:
+            if verbose:
+                logger.warning(f"Could not resolve: {playlist_url} ({e})")
+            continue
+
+        # Apply exclude filter to playlist title/description
+        metadata = [playlist.title]
+        if getattr(playlist, "description", None):
+            metadata.append(playlist.description)
+        haystack = " ".join(metadata).lower()
+        if any(needle.lower() in haystack for needle in exclude):
+            continue
+
+        # Create directory for playlist
+        directory = sanitize(playlist.title)
+        if not directory:
+            continue
+        if not os.path.exists(directory):
+            os.mkdir(directory)
+
+        # Download only the first track in the playlist
+        tracks = list(playlist.tracks)
+        if tracks:
+            track = tracks[0]
+            file = os.path.join(directory, sanitize(track.title) + ".mp3")
+
+            # Skip existing files
+            if os.path.exists(file) and not overwrite:
                 continue
 
-            # Create directory for playlist
-            directory = sanitize(playlist.title)
-            if directory == "":
+            # Skip tracks that are not allowed to be streamed
+            if not getattr(track, "streamable", True):
                 continue
-            if not os.path.exists(directory):
-                os.mkdir(directory)
 
-            # Download tracks in playlist
-            for track in client.get(playlist.tracks_uri):
-                file = os.path.join(directory, sanitize(track.title) + ".mp3")
-
-                # Skip existing files
-                if os.path.exists(file) and not overwrite:
-                    continue
-
-                # Skip tracks that are not allowed to be streamed
-                if not track.streamable:
-                    continue
-
-                # Skip tracks named with filter terms
-                haystack = (track.title + " " + track.description + " " + track.tag_list).lower()
-                if any(needle in haystack for needle in exclude):
-                    continue
+            # Skip tracks named with filter terms
+            track_haystack = (track.title + " " + getattr(track, "description", "") + " " + getattr(track, "tag_list", "")).lower()
+            if any(needle.lower() in track_haystack for needle in exclude):
+                continue
 
                 # Download track
                 r = requests.get(client.get(track.stream_url, allow_redirects=False).location, stream=True)
@@ -94,3 +107,6 @@ def scrape(query, include, exclude, quiet, verbose, overwrite, limit):
                         disable=quiet,
                     ):
                         f.write(data)
+            
+            # Break after processing the first valid playlist
+            break
