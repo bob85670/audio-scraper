@@ -36,6 +36,9 @@ def _filter_video(video_info, include, exclude) -> bool:
 
 def scrape(query, include, exclude, quiet, verbose, overwrite, limit):
     """Search YouTube and download audio from discovered videos."""
+    import os
+    # Ensure output directory exists
+    os.makedirs("audio_data", exist_ok=True)
 
     # Search YouTube for videos.
     query_string = urlencode({"search_query": f"{query} {include}"})
@@ -57,13 +60,22 @@ def scrape(query, include, exclude, quiet, verbose, overwrite, limit):
 
         # Always prefer highest quality audio.
         download_options = {
+            # Download best audio, convert to mp3 (output in audio_data/)
             "format": "bestaudio/best",
+            "outtmpl": "audio_data/%(title)s.%(ext)s",
             "verbose": verbose,
             "quiet": quiet,
             "nooverwrites": not overwrite,
-            "writeinfojson": True,
-            "writethumbnail": True,
-            "writedescription": True,
+            "writeinfojson": False,
+            "writethumbnail": False,
+            "writedescription": False,
+            "postprocessors": [
+                {
+                    "key": "FFmpegExtractAudio",
+                    "preferredcodec": "mp3",
+                    "preferredquality": "192",
+                }
+            ],
         }
         ydl = yt.YoutubeDL(download_options)
 
