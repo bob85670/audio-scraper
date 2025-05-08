@@ -7,6 +7,9 @@ import sys
 import soundcloud
 import youtube
 
+import os
+import shutil
+
 logger = logging.getLogger(__name__)
 
 
@@ -41,6 +44,13 @@ def cli(args=None):
     # Always limit to 1 for this specific requirement
     download(args.query, args.include, args.exclude, args.quiet, args.verbose, args.overwrite, 1)
     logger.info("Finished downloading 1 audio track.")
+
+    # Remove any folder in root except “audio_data”
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+    for entry in os.listdir(root_dir):
+        entry_path = os.path.join(root_dir, entry)
+        if os.path.isdir(entry_path) and entry != "audio_data" and entry != "__pycache__" and entry != ".venv" and entry != ".git":
+            shutil.rmtree(entry_path)
 
 
 if __name__ == "__main__":
