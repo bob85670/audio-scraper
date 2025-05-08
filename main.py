@@ -1,22 +1,16 @@
 """Download audio."""
 
-import argparse
 import logging
 import sys
-
 import soundcloud
 import youtube
-
 import os
 import shutil
 
 logger = logging.getLogger(__name__)
 
-
-def download(query, include, exclude, quiet, verbose, overwrite, limit):
+def download(query):
     """Scrape various websites for audio. Try YouTube first, then SoundCloud only if YouTube fails or finds nothing."""
-    import os
-
     # def list_mp3_files():
     #     audio_dir = "audio_data"
     #     return set(
@@ -28,7 +22,7 @@ def download(query, include, exclude, quiet, verbose, overwrite, limit):
     # before_mp3s = list_mp3_files()
     # youtube_success = True
     # try:
-    #     youtube.scrape(query, include, exclude, quiet, verbose, overwrite, limit)
+    #     youtube.scrape(query)
     # except Exception as e:
     #     print(f"YouTube scrape failed: {e}")
     #     youtube_success = False
@@ -41,43 +35,18 @@ def download(query, include, exclude, quiet, verbose, overwrite, limit):
     #     return
 
     logger.info("Trying SoundCloud scrape...")
-    soundcloud.scrape(query, include, exclude, quiet, verbose, overwrite, limit)
+    soundcloud.scrape(query)
     logger.info("Completed SoundCloud scrape.")
 
 
-def cli(args=None):
-    """CLI for scraping audio."""
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("query", default="Cerulean Crayons", nargs="?", help="search terms")
-    parser.add_argument("-i", "--include", default=[], action="append", help="only download audio with this tag")
-    parser.add_argument("-e", "--exclude", default=[], action="append", help="ignore results with this tag")
-    parser.add_argument("-q", "--quiet", default=False, action="store_true", help="hide progress reporting")
-    parser.add_argument("-v", "--verbose", default=False, action="store_true", help="display debug information")
-    parser.add_argument("-o", "--overwrite", default=False, action="store_true", help="overwrite existing files")
-    parser.add_argument("-l", "--limit", default=1, type=int, help="limit number of downloads (modified to 1)")
-    args = parser.parse_args()
-
-    logging.basicConfig(format="[%(name)s] %(message)s")
-    if args.verbose:
-        logger.setLevel(logging.DEBUG)
-    elif args.quiet:
-        logger.setLevel(logging.ERROR)
-    else:
-        logger.setLevel(logging.INFO)
-
-    logger.info(f'Downloading 1 audio track from "{args.query}" videos tagged {args.include} and not {args.exclude}.')
-    # Always limit to 1 for this specific requirement
-    download(args.query, args.include, args.exclude, args.quiet, args.verbose, args.overwrite, 1)
+if __name__ == "__main__":
+    query = sys.argv[1] if len(sys.argv) > 1 else "Cerulean Crayons"
+    download(query)
     logger.info("Finished downloading 1 audio track.")
 
-    # Remove any folder in root except “audio_data”
+    # Remove any folder in root except “audio_data”, “__pycache__”, “.venv”, “.git”, and “year_lists”
     root_dir = os.path.dirname(os.path.abspath(__file__))
     for entry in os.listdir(root_dir):
         entry_path = os.path.join(root_dir, entry)
-        if os.path.isdir(entry_path) and entry != "audio_data" and entry != "__pycache__" and entry != ".venv" and entry != ".git" and entry != "year_lists":
+        if os.path.isdir(entry_path) and entry not in ["audio_data", "__pycache__", ".venv", ".git", "year_lists"]:
             shutil.rmtree(entry_path)
-
-
-if __name__ == "__main__":
-    cli(sys.argv[1:])
