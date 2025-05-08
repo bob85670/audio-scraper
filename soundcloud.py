@@ -24,13 +24,23 @@ else:
     API_KEY = "81f430860ad96d8170e3bf1639d4e072"
 
 
-def scrape(query):
+def scrape(query, output_dir=None):
     """
     Search SoundCloud and download the first track from the first playlist found for the query.
+    
+    Args:
+        query (str): Search string.
+        output_dir (str or None): folder to save the track; None (default) = audio_data, "" = current dir.
     """
     logger.info("[soundcloud] Starting scrape with api")
-    directory = "audio_data"
-    os.makedirs(directory, exist_ok=True)
+    import os
+
+    if output_dir is None:
+        output_dir = "audio_data"
+        os.makedirs(output_dir, exist_ok=True)
+    elif output_dir and not os.path.exists(output_dir):
+        os.makedirs(output_dir, exist_ok=True)
+
     client = SoundcloudAPI()
 
     # Step 1: Search for playlists using SoundCloud search page
@@ -65,7 +75,9 @@ def scrape(query):
     tracks = list(playlist.tracks)
     if tracks:
         track = tracks[0]
-        file = os.path.join("audio_data", sanitize(track.title) + ".mp3")
+        file = sanitize(track.title) + ".mp3"
+        if output_dir:
+            file = os.path.join(output_dir, file)
         # Skip if file exists
         if os.path.exists(file):
             logger.info(f"Track already exists: {file}")
@@ -88,3 +100,26 @@ def scrape(query):
             ):
                 f.write(data)
         logger.info(f"Finished downloading track: {file}")
+        
+if __name__ == "__main__":
+    import argparse
+    import sys
+
+    parser = argparse.ArgumentParser(
+        description="Download audio from SoundCloud for a single song query."
+    )
+    parser.add_argument(
+        "query",
+        type=str,
+        help="Song query to search and download from SoundCloud (e.g., 'Miley Cyrus Flowers')"
+    )
+    args = parser.parse_args()
+
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+
+    try:
+        scrape(args.query, output_dir="")
+        print("Done.")
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)

@@ -11,28 +11,28 @@ logger = logging.getLogger(__name__)
 
 def download(query):
     """Scrape various websites for audio. Try YouTube first, then SoundCloud only if YouTube fails or finds nothing."""
-    # def list_mp3_files():
-    #     audio_dir = "audio_data"
-    #     return set(
-    #         f
-    #         for f in os.listdir(audio_dir)
-    #         if f.lower().endswith(".mp3")
-    #     ) if os.path.isdir(audio_dir) else set()
+    def list_mp3_files():
+        audio_dir = "audio_data"
+        return set(
+            f
+            for f in os.listdir(audio_dir)
+            if f.lower().endswith(".mp3")
+        ) if os.path.isdir(audio_dir) else set()
 
-    # before_mp3s = list_mp3_files()
-    # youtube_success = True
-    # try:
-    #     youtube.scrape(query)
-    # except Exception as e:
-    #     print(f"YouTube scrape failed: {e}")
-    #     youtube_success = False
+    before_mp3s = list_mp3_files()
+    youtube_success = True
+    try:
+        youtube.scrape(query)
+    except Exception as e:
+        print(f"YouTube scrape failed: {e}")
+        youtube_success = False
 
-    # after_mp3s = list_mp3_files()
-    # produced_new_mp3 = len(after_mp3s - before_mp3s) > 0
+    after_mp3s = list_mp3_files()
+    produced_new_mp3 = len(after_mp3s - before_mp3s) > 0
 
-    # if youtube_success and produced_new_mp3:
-    #     print("Audio downloaded from YouTube.")
-    #     return
+    if youtube_success and produced_new_mp3:
+        print("Audio downloaded from YouTube.")
+        return
 
     logger.info("Trying SoundCloud scrape...")
     soundcloud.scrape(query)
