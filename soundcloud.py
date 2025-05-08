@@ -30,6 +30,8 @@ def scrape(query, include, exclude, quiet, verbose, overwrite, limit):
     Only scrapes the first song from the first (most related) playlist.
     """
     print("[soundcloud] Starting scrape with api")
+    directory = "audio_data"
+    os.makedirs(directory, exist_ok=True)
     client = SoundcloudAPI()
 
     # Step 1: Search for playlists using SoundCloud search page
@@ -44,7 +46,6 @@ def scrape(query, include, exclude, quiet, verbose, overwrite, limit):
     from bs4 import BeautifulSoup
     soup = BeautifulSoup(resp.text, "html.parser")
     playlist_urls = set()
-    print("[soundcloud] Found {len(playlist_urls)} playlists")
     for link in soup.find_all("a", href=True):
         href = link["href"]
         # Playlist URLs follow /user/sets/playlist-title
@@ -52,6 +53,7 @@ def scrape(query, include, exclude, quiet, verbose, overwrite, limit):
             playlist_urls.add("https://soundcloud.com" + href)
         if len(playlist_urls) >= limit:
             break
+    print("[soundcloud] Found", len(playlist_urls), "playlists")
 
     # Step 3: Process only the first playlist that passes filters
     print("[soundcloud] Processing only the first playlist")
@@ -84,7 +86,7 @@ def scrape(query, include, exclude, quiet, verbose, overwrite, limit):
         tracks = list(playlist.tracks)
         if tracks:
             track = tracks[0]
-            file = os.path.join(directory, sanitize(track.title) + ".mp3")
+            file = os.path.join("audio_data", sanitize(track.title) + ".mp3")
 
             # Skip existing files
             if os.path.exists(file) and not overwrite:
@@ -99,20 +101,20 @@ def scrape(query, include, exclude, quiet, verbose, overwrite, limit):
             if any(needle.lower() in track_haystack for needle in exclude):
                 continue
 
-                # Download track
-                r = requests.get(client.get(track.stream_url, allow_redirects=False).location, stream=True)
-                total_size = int(r.headers["content-length"])
-                chunk_size = 1000000  # 1 MB chunks
-                with open(file, "wb") as f:
-                    for data in tqdm(
-                        r.iter_content(chunk_size),
-                        desc=track.title,
-                        total=total_size / chunk_size,
-                        unit="MB",
-                        file=sys.stdout,
-                        disable=quiet,
-                    ):
-                        f.write(data)
+            # Download track
+            r = requests.get(track.get_stream_url(), stream=True)
+            total_size = int(r.headers["content-length"])
+            chunk_size = 1000000  # 1 MB chunks
+            with open(file, "wb") as f:
+                for data in tqdm(
+                    r.iter_content(chunk_size),
+                    desc=track.title,
+                    total=total_size / chunk_size,
+                    unit="MB",
+                    file=sys.stdout,
+                    disable=quiet,
+                ):
+                    f.write(data)
             
             # Break after processing the first valid playlist
             break
