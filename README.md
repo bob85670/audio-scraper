@@ -1,4 +1,4 @@
-# Audioscrape
+# Audio Scraper
 
 Scrape audio from various websites with a simple command-line interface.
 

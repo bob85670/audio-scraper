@@ -29,11 +29,13 @@ def scrape(query, include, exclude, quiet, verbose, overwrite, limit):
     Search SoundCloud and download audio from discovered playlists using web scraping.
     Only scrapes the first song from the first (most related) playlist.
     """
+    print("[soundcloud] Starting scrape with api")
     client = SoundcloudAPI()
 
     # Step 1: Search for playlists using SoundCloud search page
     search_url = f"https://soundcloud.com/search/sets?q={requests.utils.quote(query)}"
     resp = requests.get(search_url)
+    print("[soundcloud] Fetching search results")
     if not resp.ok:
         logger.error(f"Failed to fetch search results for query: {query}")
         return
@@ -42,6 +44,7 @@ def scrape(query, include, exclude, quiet, verbose, overwrite, limit):
     from bs4 import BeautifulSoup
     soup = BeautifulSoup(resp.text, "html.parser")
     playlist_urls = set()
+    print("[soundcloud] Found {len(playlist_urls)} playlists")
     for link in soup.find_all("a", href=True):
         href = link["href"]
         # Playlist URLs follow /user/sets/playlist-title
@@ -51,6 +54,7 @@ def scrape(query, include, exclude, quiet, verbose, overwrite, limit):
             break
 
     # Step 3: Process only the first playlist that passes filters
+    print("[soundcloud] Processing only the first playlist")
     for playlist_url in playlist_urls:
         try:
             playlist = client.resolve(playlist_url)
@@ -75,6 +79,8 @@ def scrape(query, include, exclude, quiet, verbose, overwrite, limit):
             os.mkdir(directory)
 
         # Download only the first track in the playlist
+        print("[soundcloud] Downloading only the first track")
+        logger.info(f"Downloading {playlist.title}")
         tracks = list(playlist.tracks)
         if tracks:
             track = tracks[0]

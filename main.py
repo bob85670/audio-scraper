@@ -14,9 +14,35 @@ logger = logging.getLogger(__name__)
 
 
 def download(query, include, exclude, quiet, verbose, overwrite, limit):
-    """Scrape various websites for audio."""
-    youtube.scrape(query, include, exclude, quiet, verbose, overwrite, limit)
+    """Scrape various websites for audio. Try YouTube first, then SoundCloud only if YouTube fails or finds nothing."""
+    import os
+
+    def list_mp3_files():
+        audio_dir = "audio_data"
+        return set(
+            f
+            for f in os.listdir(audio_dir)
+            if f.lower().endswith(".mp3")
+        ) if os.path.isdir(audio_dir) else set()
+
+    before_mp3s = list_mp3_files()
+    youtube_success = True
+    try:
+        youtube.scrape(query, include, exclude, quiet, verbose, overwrite, limit)
+    except Exception as e:
+        print(f"YouTube scrape failed: {e}")
+        youtube_success = False
+
+    after_mp3s = list_mp3_files()
+    produced_new_mp3 = len(after_mp3s - before_mp3s) > 0
+
+    if youtube_success and produced_new_mp3:
+        print("Audio downloaded from YouTube.")
+        return
+
+    print("Trying SoundCloud scrape...")
     soundcloud.scrape(query, include, exclude, quiet, verbose, overwrite, limit)
+    print("Completed SoundCloud scrape.")
 
 
 def cli(args=None):
@@ -49,7 +75,7 @@ def cli(args=None):
     root_dir = os.path.dirname(os.path.abspath(__file__))
     for entry in os.listdir(root_dir):
         entry_path = os.path.join(root_dir, entry)
-        if os.path.isdir(entry_path) and entry != "audio_data" and entry != "__pycache__" and entry != ".venv" and entry != ".git":
+        if os.path.isdir(entry_path) and entry != "audio_data" and entry != "__pycache__" and entry != ".venv" and entry != ".git" and entry != "year_lists":
             shutil.rmtree(entry_path)
 
 
