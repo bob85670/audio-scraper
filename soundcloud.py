@@ -24,13 +24,14 @@ else:
     API_KEY = "81f430860ad96d8170e3bf1639d4e072"
 
 
-def scrape(query, output_dir=None):
+def scrape(query, output_dir=None, filename=None):
     """
     Search SoundCloud and download the first track from the first playlist found for the query.
-    
+
     Args:
         query (str): Search string.
         output_dir (str or None): folder to save the track; None (default) = audio_data, "" = current dir.
+        filename (str or None): Explicit filename for the output mp3.
     """
     logger.info("[soundcloud] Starting scrape with api")
     import os
@@ -75,9 +76,13 @@ def scrape(query, output_dir=None):
     tracks = list(playlist.tracks)
     if tracks:
         track = tracks[0]
-        file = sanitize(track.title) + ".mp3"
-        if output_dir:
-            file = os.path.join(output_dir, file)
+        if filename:
+            fname = filename if filename.lower().endswith(".mp3") else filename + ".mp3"
+            file = os.path.join(output_dir, fname) if output_dir else fname
+        else:
+            file = sanitize(track.title) + ".mp3"
+            if output_dir:
+                file = os.path.join(output_dir, file)
         # Skip if file exists
         if os.path.exists(file):
             logger.info(f"Track already exists: {file}")

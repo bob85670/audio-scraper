@@ -9,7 +9,7 @@ import shutil
 
 logger = logging.getLogger(__name__)
 
-def download(query, output_dir=None):
+def download(query, output_dir=None, filename=None):
     """Scrape various websites for audio. Try YouTube first, then SoundCloud only if YouTube fails or finds nothing."""
     def list_mp3_files(audio_dir):
         return set(
@@ -22,7 +22,7 @@ def download(query, output_dir=None):
     before_mp3s = list_mp3_files(audio_dir)
     youtube_success = True
     try:
-        youtube.scrape(query, output_dir=audio_dir)
+        youtube.scrape(query, output_dir=audio_dir, filename=filename)
     except Exception as e:
         print(f"YouTube scrape failed: {e}")
         youtube_success = False
@@ -35,7 +35,7 @@ def download(query, output_dir=None):
         return
 
     logger.info("Trying SoundCloud scrape...")
-    soundcloud.scrape(query, output_dir=audio_dir)
+    soundcloud.scrape(query, output_dir=audio_dir, filename=filename)
     logger.info("Completed SoundCloud scrape.")
 
 
@@ -44,6 +44,22 @@ import json
 
 def scrape_all_years():
     """Iterate over year_lists JSONs, scrape/download each song, and store mp3s in the audio_data/<year>/ folder."""
+    audio_data_root = "audio_data"
+    # Clear audio_data folder before starting
+    if os.path.isdir(audio_data_root):
+        for dirpath, dirnames, filenames in os.walk(audio_data_root):
+            for f in filenames:
+                try:
+                    os.remove(os.path.join(dirpath, f))
+                except Exception as ex:
+                    logger.warning(f"Could not remove file {f}: {ex}")
+            for d in dirnames:
+                try:
+                    shutil.rmtree(os.path.join(dirpath, d))
+                except Exception as ex:
+                    logger.warning(f"Could not remove folder {d}: {ex}")
+        # Re-make year folders as needed later
+
     yearlists_dir = "year_lists"
     for json_path in glob.glob(os.path.join(yearlists_dir, "*_songs.json")):
         base = os.path.basename(json_path)
@@ -51,16 +67,17 @@ def scrape_all_years():
             year = base.split("_")[0]
             with open(json_path, "r", encoding="utf-8") as f:
                 songlist = json.load(f)
-            for entry in songlist:
+            for idx, entry in enumerate(songlist):
                 if not isinstance(entry, list) or len(entry) != 2:
                     logger.warning(f"Skipping malformed entry in {json_path}: {entry}")
                     continue
                 artist, title = entry
-                # Remove single quotes from title if present
                 clean_title = title.strip("'").strip('"')
+                # filename: "{index+1}. {title} - {artist}.mp3"
+                filename = f"{idx+1}. {clean_title} - {artist}.mp3"
                 query = f"{artist} {clean_title}"
-                print(f"Scraping: {query} into audio_data/{year}/")
-                download(query, output_dir=os.path.join("audio_data", year))
+                print(f"Scraping: {query} into audio_data/{year}/ as {filename}")
+                download(query, output_dir=os.path.join("audio_data", year), filename=filename)
         except Exception as e:
             logger.error(f"Error processing {json_path}: {e}")
 

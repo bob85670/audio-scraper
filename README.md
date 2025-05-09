@@ -19,5 +19,5 @@ python3 soundcloud.py "Miley Cyrus Flowers"
 
 Or you can use the program as:
 ```sh
-python main.py --all-years
+python3 main.py --all-years
 ```

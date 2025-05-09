@@ -10,24 +10,28 @@ import yt_dlp as yt
 logger = logging.getLogger(__name__)
 
 
-def scrape(query, output_dir=None):
+def scrape(query, output_dir=None, filename=None):
     """Search YouTube and download audio from the first discovered video.
 
     Args:
         query (str): The YouTube search query.
         output_dir (str or None): Directory where to save the mp3.
             If None (default), saves in 'audio_data'. If '', saves in current dir.
+        filename (str or None): Explicit filename for the output mp3.
     """
     import os
 
     if output_dir is None:
         output_dir = "audio_data"
         os.makedirs(output_dir, exist_ok=True)
-        outtmpl = os.path.join(output_dir, "%(title)s.%(ext)s")
+    elif output_dir and not os.path.exists(output_dir):
+        os.makedirs(output_dir, exist_ok=True)
+
+    if filename:
+        filename = filename if filename.lower().endswith(".mp3") else filename + ".mp3"
+        outtmpl = os.path.join(output_dir, filename)
     else:
         outtmpl = "%(title)s.%(ext)s" if output_dir == "" else os.path.join(output_dir, "%(title)s.%(ext)s")
-        if output_dir and not os.path.exists(output_dir):
-            os.makedirs(output_dir, exist_ok=True)
 
     # Search YouTube for videos.
     query_string = urlencode({"search_query": query})
