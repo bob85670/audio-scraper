@@ -7,27 +7,17 @@ Scrape audio from various websites with a simple command-line interface.
 First make sure Python is installed, then run:
 
 ```sh
-pip install audioscrape
+python3 main.py "Miley Cyrus Flowers"
 ```
 
-Then you can use the program as:
+Or you can use the program by choosing the source platform as:
 
 ```sh
-audioscrape "acoustic guitar"
+python3 youtube.py "Miley Cyrus Flowers"
+python3 soundcloud.py "Miley Cyrus Flowers"
 ```
 
-See `audioscrape --help` for more details.
-
-### Python API
-
-You can also use the scraper directly in Python, as:
-
-```python
-import audioscrape
-
-audioscrape.download(
-    query="Cerulean Crayons",
-    include=["guitar"],
-    exclude=["remix"],
-    quiet=True,
-)
+Or you can use the program as:
+```sh
+python main.py --all-years
+```
