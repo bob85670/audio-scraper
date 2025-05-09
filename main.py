@@ -73,8 +73,12 @@ def scrape_all_years():
                     continue
                 artist, title = entry
                 clean_title = title.strip("'").strip('"')
-                # filename: "{index+1}. {title} - {artist}.mp3"
-                filename = f"{idx+1}. {clean_title} - {artist}.mp3"
+                # Only use the song title for filename, strip spaces, ensure .mp3 only once
+                base_name = clean_title.replace(" ", "_")
+                if not base_name.lower().endswith(".mp3"):
+                    filename = f"{base_name}.mp3"
+                else:
+                    filename = base_name
                 query = f"{artist} {clean_title}"
                 print(f"Scraping: {query} into audio_data/{year}/ as {filename}")
                 download(query, output_dir=os.path.join("audio_data", year), filename=filename)

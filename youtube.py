@@ -28,8 +28,11 @@ def scrape(query, output_dir=None, filename=None):
         os.makedirs(output_dir, exist_ok=True)
 
     if filename:
-        filename = filename if filename.lower().endswith(".mp3") else filename + ".mp3"
-        outtmpl = os.path.join(output_dir, filename)
+        # Strip .mp3 if present, as yt-dlp will add preferredcodec as extension
+        basefile = filename
+        if basefile.lower().endswith(".mp3"):
+            basefile = basefile[:-4]
+        outtmpl = os.path.join(output_dir, basefile)
     else:
         outtmpl = "%(title)s.%(ext)s" if output_dir == "" else os.path.join(output_dir, "%(title)s.%(ext)s")
 
